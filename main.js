@@ -2,13 +2,22 @@ class HashMap {
   constructor() {
     this.buckets = new Array(16).fill(null);
   }
+  growHash() {
+    const capacity = 0.8;
+    let counter = 0;
+    this.buckets.forEach((bucket) => {
+      if (bucket !== null) counter++;
+    });
+    if (counter > this.buckets.length * capacity) this.buckets.push(null);
+  }
   hash(key) {
+    this.growHash();
     let hashCode = 0;
 
     const primeNumber = 31;
     for (let i = 0; i < key.length; i++) {
       hashCode = primeNumber * hashCode + key.charCodeAt(i);
-      hashCode = hashCode % 16;
+      hashCode = hashCode % this.buckets.length;
     }
 
     return hashCode;
@@ -76,6 +85,13 @@ class HashMap {
     });
     return values;
   }
+  entries() {
+    let entries = [];
+    this.buckets.forEach((bucket) => {
+      if (bucket !== null) entries = entries.concat(bucket);
+    });
+    return entries;
+  }
 }
 
 let hashMap = new HashMap();
@@ -83,6 +99,7 @@ hashMap.set("Carlos", "carlo");
 console.log(hashMap);
 console.log(hashMap.keys());
 console.log(hashMap.values());
+console.log(hashMap.entries());
 
 hashMap.clear();
 console.log(hashMap);
