@@ -69,12 +69,20 @@ class HashMap {
     });
     return keys;
   }
+  values() {
+    let values = [];
+    this.buckets.forEach((bucket) => {
+      if (bucket !== null) values = values.concat(Object.values(bucket));
+    });
+    return values;
+  }
 }
 
 let hashMap = new HashMap();
 hashMap.set("Carlos", "carlo");
 console.log(hashMap);
 console.log(hashMap.keys());
+console.log(hashMap.values());
 
 hashMap.clear();
 console.log(hashMap);
