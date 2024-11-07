@@ -1,101 +1,123 @@
 class HashMap {
   constructor() {
-    this.buckets = new Array(16).fill(null);
+    this.buckets = new Array(16).fill(null).map(() => []); // Each bucket is an array to handle collisions
+    this.size = 0;
+    this.loadFactor = 0.75;
   }
-  growHash() {
-    const capacity = 0.75;
-    let counter = 0;
-    this.buckets.forEach((bucket) => {
-      if (bucket !== null) counter++;
-    });
-    console.log(counter);
-    console.log(Math.floor(this.buckets.length * capacity));
-    if (counter > Math.floor(this.buckets.length * capacity))
-      this.buckets.push(null);
-  }
-  hash(key) {
-    this.growHash();
-    let hashCode = 0;
 
+  reassign() {
+    const oldBuckets = this.buckets;
+    this.buckets = new Array(this.buckets.length * 2).fill(null).map(() => []); // Double the size
+    this.size = 0; // Reset size and re-add entries to avoid double counting
+
+    // Reinsert each key-value pair into the new bucket array
+    oldBuckets.forEach((bucket) => {
+      bucket.forEach(({ key, value }) => {
+        this.set(key, value);
+      });
+    });
+  }
+
+  growHash() {
+    if (this.size / this.buckets.length > this.loadFactor) {
+      this.reassign(); // Resize and rehash only once
+    }
+  }
+
+  hash(key) {
+    let hashCode = 0;
     const primeNumber = 31;
     for (let i = 0; i < key.length; i++) {
       hashCode = primeNumber * hashCode + key.charCodeAt(i);
     }
-    hashCode = hashCode % this.buckets.length;
-    return hashCode;
+    return Math.abs(hashCode); // Ensure positive index
   }
-  set(key, value) {
-    const index = this.hash(key);
 
-    if (index < 0 || index >= this.buckets.length) {
-      throw new Error("Trying to access index out of bound");
-    } else {
-      this.buckets[index] = {};
-      this.buckets[index][key] = value;
+  set(key, value) {
+    const index = this.hash(key) % this.buckets.length;
+    const bucket = this.buckets[index];
+
+    // Check if key exists and update value if found
+    for (let i = 0; i < bucket.length; i++) {
+      if (bucket[i].key === key) {
+        bucket[i].value = value;
+        return;
+      }
     }
+
+    // If key doesn't exist, add new entry
+    bucket.push({ key, value });
+    this.size++;
+
+    // Grow the hash map if needed
+    this.growHash();
   }
+
   get(key) {
-    const index = this.hash(key);
-    return this.buckets[index] ? this.buckets[index].value : null;
+    const index = this.hash(key) % this.buckets.length;
+    const bucket = this.buckets[index];
+
+    for (const entry of bucket) {
+      if (entry.key === key) {
+        return entry.value;
+      }
+    }
+    return null;
   }
+
   has(key) {
-    const index = this.hash(key);
-    if (
-      typeof this.buckets[index] === "undefined" ||
-      this.buckets[index] === null
-    ) {
-      return false;
-    } else {
-      return true;
-    }
+    return this.get(key) !== null;
   }
+
   remove(key) {
-    const index = this.hash(key);
-    if (
-      typeof this.buckets[index] === "undefined" ||
-      this.buckets[index] === null
-    ) {
-      return false;
-    } else {
-      this.buckets[index] = null;
-      return true;
+    const index = this.hash(key) % this.buckets.length;
+    const bucket = this.buckets[index];
+
+    for (let i = 0; i < bucket.length; i++) {
+      if (bucket[i].key === key) {
+        bucket.splice(i, 1);
+        this.size--;
+        return true;
+      }
     }
+    return false;
   }
+
   length() {
-    let length = 0;
-    this.buckets.forEach((bucket) => {
-      if (bucket !== null) length++;
-    });
-    return length;
+    return this.size;
   }
+
   clear() {
-    this.buckets = this.buckets.map((bucket) => {
-      return null;
-    });
+    this.buckets = new Array(this.buckets.length).fill(null).map(() => []);
+    this.size = 0;
   }
+
   keys() {
-    let keys = [];
+    const keys = [];
     this.buckets.forEach((bucket) => {
-      if (bucket !== null) keys = keys.concat(Object.keys(bucket));
+      bucket.forEach(({ key }) => keys.push(key));
     });
     return keys;
   }
+
   values() {
-    let values = [];
+    const values = [];
     this.buckets.forEach((bucket) => {
-      if (bucket !== null) values = values.concat(Object.values(bucket));
+      bucket.forEach(({ value }) => values.push(value));
     });
     return values;
   }
+
   entries() {
-    let entries = [];
+    const entries = [];
     this.buckets.forEach((bucket) => {
-      if (bucket !== null) entries = entries.concat(bucket);
+      bucket.forEach((entry) => entries.push(entry));
     });
     return entries;
   }
 }
 
+// Testing with the given data
 const test = new HashMap();
 test.set("apple", "red");
 test.set("banana", "yellow");
@@ -109,8 +131,10 @@ test.set("ice cream", "white");
 test.set("jacket", "blue");
 test.set("kite", "pink");
 test.set("lion", "golden");
-console.log(test);
-
-test.set("moon", "silver");
 
 console.log(test);
+console.log("Size:", test.length());
+test.set("moon", "silver"); // This should trigger a resize
+console.log("Size after resizing:", test.length());
+
+console.log("Entries:", test.entries());
